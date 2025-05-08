@@ -9,8 +9,8 @@ fn void run() {
 	void* m = alloc_executable_memory(SIZE)!!;
 	emit_code_into_memory(m);
 	JittedFunc func = m;
-	long result = func(2);
-	io::printfn("result: %d", func(2));
+	long result = func(3);
+	io::printfn("result: %d", result);
 }
 
 fn void*? alloc_executable_memory(usz size) {
@@ -28,7 +28,13 @@ fn void*? alloc_executable_memory(usz size) {
 fn void emit_code_into_memory(char* m) {
   char[] code = {
     0x48, 0x89, 0xf8,                   // mov %rdi, %rax
-    0x48, 0x83, 0xc0, 0x04,             // add $4, %rax
+	// We don't add or subtract because it's too slow
+    //0x48, 0x83, 0xc0, 0x01,             // add $1, %rax
+    //0x48, 0x83, 0xe8, 0x01,             // sub $1, %rax
+    0x48, 0xff, 0xc0,             // inc %rax
+    0x48, 0xff, 0xe8,             // sub %rax
+	0x48, 0xd1, 0xe0,             // sal $1, %rax
+	0x48, 0xd1, 0xf8,           // sar $1, %rax
     0xc3                                // ret
   };
   mem::copy(m, code, code.len);
@@ -37,10 +43,10 @@ fn void emit_code_into_memory(char* m) {
 const usz SIZE = 1024;
 alias JittedFunc = fn long(long);
 
+faultdef ALLOC_BYTECODE_ERROR;
 
 // mmap helpers
-
-faultdef ALLOC_BYTECODE_ERROR;
+// from sys/mann.h
 
 extern fn void* mmap(void* address, usz length, int protect, int flags, int filedes, usz offset);
 
